@@ -1,81 +1,87 @@
-// src/App.js
-import React, { useState } from "react";
+import axios from "axios";
 import "./App.css";
+import { useEffect, useState } from "react";
 
-function App() {
-  const [cityInput, setCityInput] = useState("");
-  const [weatherData, setWeatherData] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+const SearchBar = ({ onSerach }) => {
+  const [searchValue, setSearchValue] = useState("");
+  const handleSearch = (e) => {
+    e.preventDefault()
+    onSerach(searchValue);
 
-  const apiKey = "92e74ee899264aa79a5142100242901";
-
-  const searchWeather = () => {
-    setLoading(true);
-    setError("");
-
-    fetch(
-      `https://api.weatherapi.com/v1/current.json?key=${apiKey}&q=${cityInput}`
-    )
-      .then((response) => response.json())
-      .then((data) => {
-        setLoading(false);
-
-        if (data.error) {
-          alert("Failed to fetch weather data.");
-        } else {
-          setWeatherData(data);
-        }
-      })
-      .catch((error) => {
-        console.error("Error fetching data:", error);
-        setLoading(false);
-        setError("Failed to fetch weather data. Please try again.");
-      });
+    setSearchValue("");
   };
 
   return (
+    <form className="search-bar" onSubmit={handleSearch}>
+      <input
+        type="text"
+        value={searchValue}
+        onChange={(e) => setSearchValue(e.target.value)}
+        placeholder="Enter city name"
+      />
+      <button >Search</button>
+    </form>
+  );
+};
+
+const WeatherCard = ({ title, value }) => {
+  return (
+    <div className="weather-card">
+      <h3>{title}</h3>
+      <p>{value}</p>
+    </div>
+  );
+};
+
+const WeatherDisplay = ({ city }) => {
+  const [weather, setWeather] = useState(null);
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    if (city) {
+      setLoading(true);
+      axios
+        .get(`https://api.weatherapi.com/v1/current.json`, {
+          params: {
+            key: "ca1084d4e3e04a8d937143514242801",
+            q: city,
+          },
+        })
+        .then((res) => {
+          setWeather(res.data);
+        })
+        .catch((err) => {
+          console.error("Error in fetching data");
+          alert("Failed to fetch waether data");
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [city]);
+
+  return (
+    <div className="weather-display">
+      {loading && <p>Loading data...</p>}
+      {!loading && weather && (
+        <div className="weather-cards">
+          
+          <WeatherCard title="Temperature" value={`${weather.current.temp_c}°C`}/>
+          <WeatherCard title="Humidity" value={`${weather.current.humidity}%`}/>
+          <WeatherCard title="Condition" value={`${weather.current.condition.text}`}/>
+          <WeatherCard title="Wind Speed" value={`${weather.current.wind_kph} kph`}/>
+        </div>
+      )}
+    </div>
+  );
+};
+function App() {
+  const [city, setCity] = useState("");
+
+  function handleSearch(searchCity) {
+    setCity(searchCity);
+  }
+  return (
     <div className="App">
-      <div className="background"></div>
-      <div className="content">
-        <h1>Weather App</h1>
-        <input
-          type="text"
-          placeholder="Enter city name"
-          value={cityInput}
-          onChange={(e) => setCityInput(e.target.value)}
-        />
-        <button onClick={searchWeather}>Search</button>
-        {loading && <p>Loading data...</p>}
-        {error && <p className="error">{error}</p>}
-        {weatherData && (
-          <div id="weather-container">
-            <div className="weather-box">
-              <p>
-                <strong>Temperature</strong> <br /> {weatherData.current.temp_c}
-                °C
-              </p>
-            </div>
-            <div className="weather-box">
-              <p>
-                <strong>Humidity</strong> <br /> {weatherData.current.humidity}%
-              </p>
-            </div>
-            <div className="weather-box">
-              <p>
-                <strong>Condition</strong> <br />
-                {weatherData.current.condition.text}
-              </p>
-            </div>
-            <div className="weather-box">
-              <p>
-                <strong>Wind Speed</strong> <br />
-                {weatherData.current.wind_kph} km/h
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
+      <SearchBar onSerach={handleSearch} />
+      <WeatherDisplay city={city} />
     </div>
   );
 }
